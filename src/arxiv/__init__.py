@@ -46,9 +46,6 @@ def metadata(arxiv_id: str) -> dict:
     return metadata
 
 
-# yaml.dump(metadata, sort_keys=False)
-
-
 def note(metadata: dict) -> str:
     """
     Format metadata to markdown file in following format
@@ -63,6 +60,7 @@ def note(metadata: dict) -> str:
     ```
 
     Args:
+        metadata (dict): Metadata of the article.
 
     Returns:
         str: Note content
@@ -86,3 +84,17 @@ def note(metadata: dict) -> str:
 
 > {summary}
 """
+
+
+def create_note(xid: str) -> str:
+    """
+    Create a note for an article.
+
+    Args:
+        xid (str): The arXiv ID of the article.
+
+    Returns:
+        str: Note content
+    """
+
+    return note(metadata(xid))

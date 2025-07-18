@@ -4,7 +4,7 @@ from typing import Annotated
 from typing_extensions import TypedDict
 from langchain_community.tools import DuckDuckGoSearchResults
 import langchain.chat_models
-from langgraph.graph import StateGraph, START
+from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain.prompts import ChatPromptTemplate
@@ -13,10 +13,20 @@ from langchain.prompts import ChatPromptTemplate
 class State(TypedDict):
     query: str
     messages: Annotated[list, add_messages]
+    result: str
 
 
 def create(model_id: str, prompt: str) -> StateGraph:
-    """ """
+    """
+    Create a graph for defining the flow.
+
+    Args:
+        model_id (str): The model id to use for the chatbot.
+        prompt (str): The prompt to use for the chatbot.
+
+    Returns:
+        StateGraph: The graph.
+    """
 
     # create agent with tools
 
@@ -51,6 +61,10 @@ def create(model_id: str, prompt: str) -> StateGraph:
             "messages": prompt_template.invoke({"input": state["query"]}).messages,
         }
 
+    def fmt(state: State):
+        state["result"] = state["messages"][-1].content
+        return state
+
     # create graph
 
     graph_builder = StateGraph(State)
@@ -59,6 +73,7 @@ def create(model_id: str, prompt: str) -> StateGraph:
     graph_builder.add_node("chatbot", chatbot)
     graph_builder.add_node("tools", tool_node)
     graph_builder.add_node("sysprompt", sysprompt)
+    graph_builder.add_node("format", fmt)
 
     # edges
     graph_builder.add_edge(START, "sysprompt")
@@ -66,6 +81,8 @@ def create(model_id: str, prompt: str) -> StateGraph:
     graph_builder.add_conditional_edges("chatbot", tools_condition)
     # Any time a tool is called, we return to the chatbot to decide the next step
     graph_builder.add_edge("tools", "chatbot")
+    graph_builder.add_edge("chatbot", "format")
+    graph_builder.add_edge("format", END)
 
     return graph_builder.compile()
 
