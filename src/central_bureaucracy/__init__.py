@@ -2,7 +2,7 @@ import dotenv
 import os
 import pathlib
 from .db import connect  # noqa
-from .io import run as runio, cmd, tags  # noqa
+from .io import run as runio, tags  # noqa
 import mlflow
 import hyperhound
 import inkinspector7000
@@ -10,6 +10,7 @@ import codeclerk
 from langgraph.graph import Graph, START, END
 import logging
 import arxiv
+import re
 
 # setup logging
 logging.basicConfig(
@@ -131,6 +132,25 @@ def create_arxiv_note(query: dict):
     return query
 
 
+def cmd(tags: list[str]) -> str | None:
+    """
+    Extracts the command from a list of tags.
+
+    Args:
+        tags (list[str]): A list of tags to search for the command.
+
+    Returns:
+        str | None: The extracted command if found, otherwise None.
+    """
+
+    for tag in tags:
+        match = re.search(r"cb:(.*)", tag)
+        if match:
+            cmd = match.group(1)
+            return cmd
+    return None
+
+
 def init() -> Graph:
     """
     Initialize the graph.
@@ -161,7 +181,6 @@ def init() -> Graph:
             case "code":
                 return "codeclerk"
             case _:
-                # Handle default case
                 return END
 
     g.add_conditional_edges(

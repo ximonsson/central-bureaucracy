@@ -1,7 +1,6 @@
 import io
 import yaml
 import pyinotify
-import re
 from langgraph.graph import Graph
 import logging
 
@@ -68,25 +67,6 @@ def tags(f: io.TextIOBase | None = None, fp: str | None = None) -> list[str] | N
     return frontmatter(f=f, fp=fp)["tags"]
 
 
-def cmd(tags: list[str]) -> str | None:
-    """
-    Extracts the command from a list of tags.
-
-    Args:
-        tags (list[str]): A list of tags to search for the command.
-
-    Returns:
-        str | None: The extracted command if found, otherwise None.
-    """
-
-    for tag in tags:
-        match = re.search(r"cb:(.*)", tag)
-        if match:
-            cmd = match.group(1)
-            return cmd
-    return None
-
-
 class EventHandler(pyinotify.ProcessEvent):
     """
     This class is an event handler for file system events. It processes events related to file creation and deletion.
@@ -102,34 +82,13 @@ class EventHandler(pyinotify.ProcessEvent):
 
         self.graph = graph
 
-    def handle(self, path: str) -> None:
-        """
-        Check tags of file for a command and execute accordingly.
-
-        Args:
-            path (str): The path to the file.
-
-        Returns:
-            None
-        """
-
-        c = cmd(tags(path))
-
-        # return in case no command
-        if not c:
-            log.debug("No command found")
-            return
-
-        log.info("Execute command", c)
-        self.graph.execute(path)
-
     def process_IN_CREATE(self, event):
         """
         This method is called when a file is created.
         """
 
         log.info("Creating:", event.pathname)
-        self.handle(event.pathname)
+        self.graph.execute(event.pathname)
 
     def process_IN_DELETE(self, event):
         """
@@ -144,7 +103,7 @@ class EventHandler(pyinotify.ProcessEvent):
         """
 
         log.info("Modifying:", event.pathname)
-        self.handle(event.pathname)
+        self.graph.execute(event.pathname)
 
 
 wm = pyinotify.WatchManager()  # Watch Manager
