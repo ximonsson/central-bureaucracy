@@ -147,7 +147,7 @@ def init() -> Graph:
 
     log.info("Initialize Central Bureaucracy...")
 
-    hh = init_hyperhound(HYPER_HOUND_SYSPROMPT)
+    hh = init_hyperhound()
     # ii = init_inkinspector()
 
     g = Graph()
