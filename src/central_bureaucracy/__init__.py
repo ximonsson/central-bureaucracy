@@ -22,81 +22,70 @@ log.setLevel(logging.DEBUG)
 dotenv.load_dotenv()
 home = pathlib.Path.home()
 
-DB = os.environ.get("CENTRAL_BUREAUCRACY_DB", "data.duckdb")
-PATH = os.environ.get("CENTRAL_BUREAUCRACY_PATH", "/tmp/cb")
+DB = os.environ.get("CB_DB", "data.duckdb")
+PATH = os.environ.get("CB_PATH", "/tmp/cb")
 
 # hyper hound
 
-SYSPROMPT_HYPER_HOUND = os.environ.get(
-    "CENTRAL_BUREAUCRACY_HYPER_HOUND_SYSPROMPT", "prompts:/hyper-hound@champion"
+HYPER_HOUND_SYSPROMPT = os.environ.get(
+    "CB_HYPER_HOUND_SYSPROMPT", "prompts:/hyper-hound@champion"
 )
-MODELID_HYPER_HOUND = os.environ.get(
-    "CENTRAL_BUREAUCRACY_HYPER_HOUND_MODELID", "hyper-hound"
-)
+HYPER_HOUND_MODEL = os.environ.get("CB_HYPER_HOUND_MODEL", "hyper-hound")
 
 # ink inspector 7000
 
-SYSPROMPT_INK_INSPECTOR_7000 = os.environ.get(
-    "CENTRAL_BUREAUCRACY_INK_INSPECTOR_7000_SYSPROMPT",
-    "prompts:/ink-inspector-7000@champion",
+INK_INSPECTOR_7000_SYSPROMPT = os.environ.get(
+    "CB_INK_INSPECTOR_7000_SYSPROMPT", "prompts:/ink-inspector-7000@champion"
 )
-MODELID_INK_INSPECTOR_7000 = os.environ.get(
-    "CENTRAL_BUREAUCRACY_INK_INSPECTOR_7000_MODELID", "ink-inspector-7000"
+INK_INSPECTOR_7000_MODEL = os.environ.get(
+    "CB_INK_INSPECTOR_7000_MODEL", "ink-inspector-7000"
 )
 
 # code clerk
 
-SYSPROMPT_CODE_CLERK = os.environ.get(
-    "CENTRAL_BUREAUCRACY_CODE_CLERK_SYSPROMPT", "prompts:/code-clerk@champion"
+CODE_CLERK_SYSPROMPT = os.environ.get(
+    "CB_CODE_CLERK_SYSPROMPT", "prompts:/code-clerk@champion"
 )
-MODELID_CODE_CLERK = os.environ.get(
-    "CENTRAL_BUREAUCRACY_CODE_CLERK_MODELID", "code-clerk"
-)
+CODE_CLERK_MODEL = os.environ.get("CB_CODE_CLERK_MODEL", "code-clerk")
 
 
-def init_hyperhound(prompt_path: str):
+def init_hyperhound():
     """
     Initialize Hyper Hound.
-
-    Args:
-        prompt_path str: path to the prompt file
     """
 
     log.info("Initialize Hyper Hound...")
-    log.debug("Prompt: %s", prompt_path)
-    log.debug("Model ID: %s", MODELID_HYPER_HOUND)
+    log.debug("Prompt: %s", HYPER_HOUND_SYSPROMPT)
+    log.debug("Model ID: %s", HYPER_HOUND_MODEL)
 
-    if prompt_path.startswith("prompts:/"):
-        prompt = mlflow.load_prompt(prompt_path).template
+    if HYPER_HOUND_SYSPROMPT.startswith("prompts:/"):
+        prompt = mlflow.load_prompt(HYPER_HOUND_SYSPROMPT).template
     else:
-        with open(prompt_path) as f:
+        with open(HYPER_HOUND_SYSPROMPT) as f:
             prompt = f.read()
 
-    return hyperhound.create_graph(MODELID_HYPER_HOUND, prompt)
+    return hyperhound.create_agent(HYPER_HOUND_MODEL, prompt)
 
 
-def init_inkinspector(prompt_path: str):
+def init_inkinspector():
     """
     Initialize Ink Inspector.
-
-    Args:
-        prompt_path str: path to the prompt file
     """
 
     log.info("Initialize Ink Inspector 7000...")
-    log.debug("Prompt: %s", prompt_path)
-    log.debug("Model ID: %s", MODELID_INK_INSPECTOR_7000)
+    log.debug("Prompt: %s", INK_INSPECTOR_7000_SYSPROMPT)
+    log.debug("Model ID: %s", INK_INSPECTOR_7000_MODEL)
 
-    if prompt_path.startswith("prompts:/"):
-        prompt = mlflow.load_prompt(prompt_path).template
+    if INK_INSPECTOR_7000_SYSPROMPT.startswith("prompts:/"):
+        prompt = mlflow.load_prompt(INK_INSPECTOR_7000_SYSPROMPT).template
     else:
-        with open(prompt_path) as f:
+        with open(INK_INSPECTOR_7000_SYSPROMPT) as f:
             prompt = f.read()
 
-    return inkinspector7000.graph(MODELID_INK_INSPECTOR_7000, prompt)
+    return inkinspector7000.graph(INK_INSPECTOR_7000_MODEL, prompt)
 
 
-def init_codeclerk(prompt_path: str):
+def init_codeclerk():
     """
     Initialize Ink Inspector.
 
@@ -105,16 +94,16 @@ def init_codeclerk(prompt_path: str):
     """
 
     log.info("Initialize Code Clerk...")
-    log.debug("Prompt: %s", prompt_path)
-    log.debug("Model ID: %s", MODELID_CODE_CLERK)
+    log.debug("Prompt: %s", CODE_CLERK_SYSPROMPT)
+    log.debug("Model ID: %s", CODE_CLERK_MODEL)
 
-    if prompt_path.startswith("prompts:/"):
-        prompt = mlflow.load_prompt(prompt_path).template
+    if CODE_CLERK_SYSPROMPT.startswith("prompts:/"):
+        prompt = mlflow.load_prompt(CODE_CLERK_SYSPROMPT).template
     else:
-        with open(prompt_path) as f:
+        with open(CODE_CLERK_SYSPROMPT) as f:
             prompt = f.read()
 
-    return codeclerk.graph(MODELID_HYPER_HOUND, prompt)
+    return codeclerk.graph(CODE_CLERK_MODEL, prompt)
 
 
 def create_arxiv_note(query: dict):
@@ -158,8 +147,8 @@ def init() -> Graph:
 
     log.info("Initialize Central Bureaucracy...")
 
-    hh = init_hyperhound(SYSPROMPT_HYPER_HOUND)
-    # ii = init_inkinspector(SYSPROMPT_INK_INSPECTOR_7000)
+    hh = init_hyperhound(HYPER_HOUND_SYSPROMPT)
+    # ii = init_inkinspector()
 
     g = Graph()
     g.add_node("arxiv", create_arxiv_note)

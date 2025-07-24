@@ -52,6 +52,7 @@ def wiki_page(id: int) -> str:
     """
 
     url = "https://en.wikipedia.org/w/api.php"
+
     params = {
         "action": "query",
         "format": "json",
@@ -62,17 +63,14 @@ def wiki_page(id: int) -> str:
         "inprop": "url",
         "rvsection": "0",
     }
+
     response = httpx.get(url, params=params)
     content = response.json()
     page = content["query"]["pages"][str(id)]
     title = page["title"]
     url = page["fullurl"]
     content = page["revisions"][0]["slots"]["main"]["*"]
-
-    if "thumbnail" in page:
-        thumbnail = page["thumbnail"]["source"]
-    else:
-        thumbnail = ""
+    thumbnail = page["thumbnail"]["source"] if "thumbnail" in page else ""
 
     return f"# {title}\n\nurl: {url}\nthumbnail: {thumbnail}\n\n---\n{content}"
 
