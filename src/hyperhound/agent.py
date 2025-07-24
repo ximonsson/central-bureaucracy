@@ -3,6 +3,7 @@ import openai
 import os
 import httpx
 import markdownify
+import ddgs
 
 
 @agents.function_tool
@@ -77,6 +78,25 @@ def wiki_page(id: int) -> str:
 
 
 @agents.function_tool
+def web_search(q: str) -> str:
+    """
+    Perform a web search using the DuckDuckGo API.
+
+    Args:
+        q (str): The query string to search for.
+
+    Returns:
+        str: The search results from the DuckDuckGo API.
+    """
+
+    res = ddgs.DDGS().text(q, max_results=5)
+
+    return "\n\n---\n".join(
+        [f"## [{item['title']}]({item['href']})\n\n{item['body']}" for item in res]
+    )
+
+
+@agents.function_tool
 def web_page(url: str) -> str:
     """
     Get web page content converted to markdown format.
@@ -114,5 +134,5 @@ def new(model: str, prompt: str, temp: float = 0.0) -> agents.Agent:
         name="Hyper Hound",
         instructions=prompt,
         model_settings=agents.ModelSettings(temperature=temp),
-        tools=[wiki_search, wiki_page, web_page],
+        tools=[wiki_search, wiki_page, web_search, web_page],
     )
