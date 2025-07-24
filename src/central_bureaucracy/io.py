@@ -1,7 +1,6 @@
 import io
 import yaml
 import pyinotify
-from langgraph.graph import Graph
 import logging
 
 log = logging.getLogger("central-bureaucracy-io")
@@ -72,15 +71,15 @@ class EventHandler(pyinotify.ProcessEvent):
     This class is an event handler for file system events. It processes events related to file creation and deletion.
     """
 
-    def __init__(self, graph: Graph):
+    def __init__(self, callback: callable):
         """
-        Initialize the EventHandler with a graph.
+        Initialize the EventHandler with a callback.
 
         Args:
-            graph (langgraph.Graph): The graph to be used for handling events.
+            callback (callable): The callback function to be called when an event is processed.
         """
 
-        self.graph = graph
+        self.callback = callback
 
     def process_IN_CREATE(self, event):
         """
@@ -88,7 +87,7 @@ class EventHandler(pyinotify.ProcessEvent):
         """
 
         log.info("Creating:", event.pathname)
-        self.graph.execute(event.pathname)
+        self.callback(event.pathname)
 
     def process_IN_DELETE(self, event):
         """
@@ -103,26 +102,27 @@ class EventHandler(pyinotify.ProcessEvent):
         """
 
         log.info("Modifying:", event.pathname)
-        self.graph.execute(event.pathname)
+        self.callback(event.pathname)
 
 
 wm = pyinotify.WatchManager()  # Watch Manager
 mask = pyinotify.IN_DELETE | pyinotify.IN_CREATE | pyinotify.IN_MODIFY  # watched events
 
 
-def run(graph: Graph, path: str) -> None:
+def run(callback: callable, path: str) -> None:
     """
-    This function sets up a file system watcher using pyinotify.
-    It watches the specified path for changes and handles events accordingly.
+    This function sets up a file system watcher and starts a loop to monitor for events.
+    This function is blocking.
 
     Args:
-        path (str): The path to the directory or file to watch.
+        callback (callable): The callback function to be called when an event is processed.
+        path (str): The path to the directory to watch.
 
     Returns:
         None
     """
 
-    handler = EventHandler(graph)
+    handler = EventHandler(callback)
     notifier = pyinotify.Notifier(wm, handler)
     wm.add_watch(path, mask, rec=True)
     notifier.loop()

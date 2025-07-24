@@ -6,11 +6,12 @@ from .io import run as runio, tags  # noqa
 import mlflow
 import hyperhound
 import inkinspector7000
-import codeclerk
-from langgraph.graph import Graph, START, END
+
+# import codeclerk
 import logging
 import arxiv
 import re
+import agents
 
 # setup logging
 logging.basicConfig(
@@ -19,8 +20,13 @@ logging.basicConfig(
 log = logging.getLogger("central-bureaucracy")
 log.setLevel(logging.DEBUG)
 
+# tracing
+agents.set_tracing_disabled(True)
+mlflow.openai.autolog()
+mlflow.langchain.autolog()
+
 dotenv.load_dotenv()
-home = pathlib.Path.home()
+# home = pathlib.Path.home()
 
 DB = os.environ.get("CB_DB", "data.duckdb")
 PATH = os.environ.get("CB_PATH", "/tmp/cb")
@@ -140,7 +146,7 @@ def cmd(tags: list[str]) -> str | None:
     return None
 
 
-def init() -> Graph:
+def init() -> callable:
     """
     Initialize the graph.
     """
@@ -150,46 +156,17 @@ def init() -> Graph:
     hh = init_hyperhound()
     # ii = init_inkinspector()
 
-    g = Graph()
-    g.add_node("arxiv", create_arxiv_note)
-    g.add_node("hyperhound", hh)
-    # g.add_node("inkinspector7000", ii)
-
-    def route(q: dict):
-        path = q["path"]
-        c = cmd(tags(fp=path))
-
-        match c:
+    # TODO
+    async def handle(path: str) -> str:
+        match cmd(tags(path)):
             case "arxiv":
-                return "arxiv"
+                create_arxiv_note(path)
+
             case "fetch":
-                q["query"] = pathlib.Path(path).stem
-                return "hyperhound"
-            case "ocr":
-                return "inkinspector7000"
-            case "code":
-                return "codeclerk"
-            case _:
-                return END
-
-    g.add_conditional_edges(
-        START,
-        route,
-        # {
-        #     "arxiv": "arxiv",
-        #     "fetch": "hyperhound",
-        #     "ocr": "inkinspector7000",
-        #     "code": "codeclerk",
-        #     END: END,
-        # },
-    )
-
-    g.add_edge("hyperhound", END)
-    g.add_edge("arxiv", END)
-
-    return g.compile()
+                r = await agents.Runner().run(hh, path)
+                return r
 
 
 def main() -> None:
-    g = init()
-    runio(g, PATH)
+    cb = init()
+    runio(cb, PATH)

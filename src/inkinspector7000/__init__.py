@@ -5,7 +5,7 @@ from typing import Annotated
 from typing_extensions import TypedDict
 import langchain.chat_models
 from langgraph.graph.message import add_messages
-from langgraph.graph import Graph, StateGraph, START, END
+from langgraph.graph import StateGraph, START, END
 
 
 def encode(path: str) -> str:
@@ -66,7 +66,7 @@ def graph(model_id: str, sysprompt: str):
             "messages": [llm.invoke(msg)],
         }
 
-    graph_builder = Graph()
+    graph_builder = StateGraph()
     graph_builder.add_node("chatbot", chatbot)
     graph_builder.add_edge(START, "chatbot")
     graph_builder.add_edge("chatbot", END)
