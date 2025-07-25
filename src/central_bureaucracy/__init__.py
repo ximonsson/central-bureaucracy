@@ -6,6 +6,7 @@ from .io import run as runio, tags
 import mlflow
 import hyperhound
 import inkinspector7000
+import codeclerk
 import logging
 import arxiv
 import re
@@ -68,7 +69,7 @@ def init_hyperhound():
         with open(HYPER_HOUND_SYSPROMPT) as f:
             prompt = f.read()
 
-    return hyperhound.create_agent(HYPER_HOUND_MODEL, prompt)
+    return hyperhound.create_agent(HYPER_HOUND_MODEL, prompt, temp=0.3)
 
 
 def init_inkinspector():
@@ -83,10 +84,13 @@ def init_inkinspector():
     if INK_INSPECTOR_7000_SYSPROMPT.startswith("prompts:/"):
         prompt = mlflow.load_prompt(INK_INSPECTOR_7000_SYSPROMPT).template
     else:
-        with open(INK_INSPECTOR_7000_SYSPROMPT) as f:
-            prompt = f.read()
+        try:
+            with open(INK_INSPECTOR_7000_SYSPROMPT) as f:
+                prompt = f.read()
+        except FileNotFoundError:
+            prompt = INK_INSPECTOR_7000_SYSPROMPT
 
-    return inkinspector7000.graph(INK_INSPECTOR_7000_MODEL, prompt)
+    return inkinspector7000.agent(INK_INSPECTOR_7000_MODEL, prompt)
 
 
 def init_codeclerk():
@@ -104,25 +108,23 @@ def init_codeclerk():
     if CODE_CLERK_SYSPROMPT.startswith("prompts:/"):
         prompt = mlflow.load_prompt(CODE_CLERK_SYSPROMPT).template
     else:
-        with open(CODE_CLERK_SYSPROMPT) as f:
-            prompt = f.read()
+        try:
+            with open(CODE_CLERK_SYSPROMPT) as f:
+                prompt = f.read()
+        except FileNotFoundError:
+            prompt = CODE_CLERK_SYSPROMPT
 
-    return codeclerk.graph(CODE_CLERK_MODEL, prompt)
+    return codeclerk.agent(CODE_CLERK_MODEL, prompt)
 
 
-def create_arxiv_note(query: dict):
+def create_arxiv_note(path: str):
     """Create a note from an arXiv paper."""
 
     # filename should be the arxiv ID
-    path = query["path"]
     filename = pathlib.Path(path).stem
-
-    log.info("Query arXiv: %s", filename)
-
+    log.info("Create arXiv note for: %s", filename)
     content = arxiv.create_note(filename)
-    query["result"] = content
-
-    return query
+    return content
 
 
 def cmd(tags: list[str]) -> str | None:
@@ -144,25 +146,53 @@ def cmd(tags: list[str]) -> str | None:
     return None
 
 
+async def fetch(agent, path: str) -> str:
+    filename = pathlib.Path(path).stem
+    input = (
+        f"Search for information and compile a note for '{filename.replace('-', ' ')}'"
+    )
+    log.debug(input)
+    r = await agents.Runner().run(agent, input)
+    return r.final_output
+
+
 def init() -> callable:
     """
     Initialize the graph.
     """
 
+    # TODO
+    # Re-consider going back to a langgraph graph or not.
+
     log.info("Initialize Central Bureaucracy...")
 
     hh = init_hyperhound()
-    # ii = init_inkinspector()
+    ii = init_inkinspector()
+    cc = init_codeclerk()
 
-    # TODO
     async def handle(path: str) -> str:
-        match cmd(tags(path)):
+        c = cmd(tags(fp=path))
+        log.info(f"Got command '{c}' from {path}")
+
+        match c:
             case "arxiv":
-                create_arxiv_note(path)
+                return create_arxiv_note(path)
 
             case "fetch":
-                r = await agents.Runner().run(hh, path)
-                return r
+                return await fetch(hh, path)
+
+            case "code":
+                r = await agents.Runner().run(cc, path)
+                return r.final_output
+
+            case "ocr":
+                r = await agents.Runner().run(ii, path)
+                return r.final_output
+
+            case _:
+                raise ValueError(f"Unrecognized command '{c}'!")
+
+    return handle
 
 
 def main() -> None:

@@ -1,11 +1,8 @@
 import base64
 import os
 from mistralai import Mistral
-from typing import Annotated
-from typing_extensions import TypedDict
-import langchain.chat_models
-from langgraph.graph.message import add_messages
-from langgraph.graph import StateGraph, START, END
+import agents
+import openai
 
 
 def encode(path: str) -> str:
@@ -30,45 +27,26 @@ def ocr(path: str, model_id: str = "mistral-ocr-latest") -> dict:
     return res
 
 
-class State(TypedDict):
-    messages: Annotated[list, add_messages]
-
-
-def graph(model_id: str, sysprompt: str):
+def agent(model: str, instr: str, temp: float = 0.0):
     """
-    Create graph
+    Creates an agent with the specified model, instructions, and temperature.
+
+    Args:
+        model (str): The model to use for the agent.
+        instr (str): The instructions for the agent.
+        temp (float, optional): The temperature for the model. Defaults to 0.0.
+
+    Returns:
+        agents.Agent: The created agent.
     """
 
-    llm = langchain.chat_models.init_chat_model(
-        f"openai:{model_id}",
-        base_url=os.environ["OPENAI_API_BASE"],
-        temperature=0.1,
+    c = openai.AsyncOpenAI(base_url=os.environ["OPENAI_API_BASE"])
+    m = agents.OpenAIChatCompletionsModel(openai_client=c, model=model)
+
+    return agents.Agent(
+        model=m,
+        name="Ink Inspector 7000",
+        instructions=instr,
+        model_settings=agents.ModelSettings(temperature=temp),
+        tools=[],
     )
-
-    def chatbot(impath):
-        # return ocr(impath)
-
-        im = encode(impath)
-        msg = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "Transcribe this."},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/jpeg;base64,{im}"},
-                    },
-                ],
-            }
-        ]
-
-        return {
-            "messages": [llm.invoke(msg)],
-        }
-
-    graph_builder = StateGraph()
-    graph_builder.add_node("chatbot", chatbot)
-    graph_builder.add_edge(START, "chatbot")
-    graph_builder.add_edge("chatbot", END)
-
-    return graph_builder.compile()
