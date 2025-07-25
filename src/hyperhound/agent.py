@@ -6,6 +6,10 @@ import httpx
 import markdownify
 import ddgs
 import trafilatura
+import logging
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 
 @agents.function_tool
@@ -36,7 +40,7 @@ def wiki_search(q: str) -> str:
         pid = item["pageid"]
         c = markdownify.markdownify(item["snippet"])
 
-        return f"title: {t}\n\npageid: {pid}\n\n{c}"
+        return f"## {t}\n\npageid: {pid}\n\n{c}"
 
     return "\n\n---\n".join(map(fmt, content["query"]["search"][:5]))
 
@@ -90,7 +94,9 @@ def web_search(q: str) -> str:
         str: The search results from the DuckDuckGo API.
     """
 
-    res = ddgs.DDGS().text(q, max_results=10)
+    log.debug(f"Web search {q}")
+
+    res = ddgs.DDGS().text(q, max_results=10, backends="wikipedia,duckduckgo,google")
 
     return "\n\n---\n".join(
         [f"## [{item['title']}]({item['href']})\n\n{item['body']}" for item in res]

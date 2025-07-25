@@ -147,6 +147,10 @@ def cmd(tags: list[str]) -> str | None:
 
 
 async def fetch(agent, path: str) -> str:
+    """
+    Fetch information related to a file and compile a note for it.
+    """
+
     filename = pathlib.Path(path).stem
     input = f"Search for information related to '{filename.replace('-', ' ')}' and compile a note for it."
     log.debug(input)
