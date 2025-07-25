@@ -15,8 +15,10 @@ dependencies = [
     "langchain-tavily>=0.2.1",
     "langchain[openai]>=0.3.25",
     "langgraph>=0.4.8",
+    "lxml[html-clean]>=6.0.0",
     "mistralai>=1.8.2",
     "mlflow[genai]>=2.22.1",
+    "newspaper3k>=0.2.8",
     "openai>=1.84.0",
     "openai-agents>=0.2.3",
     "polars>=1.31.0",
@@ -24,6 +26,7 @@ dependencies = [
     "pyinotify>=0.9.6",
     "pyyaml>=6.0.2",
     "smolagents[openai,toolkit]>=1.17.0",
+    "trafilatura>=1.6.1",
 ]
 
 [project.scripts]

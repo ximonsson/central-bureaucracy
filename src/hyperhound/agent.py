@@ -1,9 +1,11 @@
 import agents
 import openai
 import os
+import re
 import httpx
 import markdownify
 import ddgs
+import trafilatura
 
 
 @agents.function_tool
@@ -34,9 +36,9 @@ def wiki_search(q: str) -> str:
         pid = item["pageid"]
         c = markdownify.markdownify(item["snippet"])
 
-        return f"title: {t}\npageid: {pid}\n{c}"
+        return f"title: {t}\n\npageid: {pid}\n\n{c}"
 
-    return "\n\n---\n".join(map(fmt, content["query"]["search"]))
+    return "\n\n---\n".join(map(fmt, content["query"]["search"][:5]))
 
 
 @agents.function_tool
@@ -70,9 +72,10 @@ def wiki_page(id: int) -> str:
     title = page["title"]
     url = page["fullurl"]
     content = page["revisions"][0]["slots"]["main"]["*"]
+    content = re.sub(r"\{\{.*?\}\}", "", content)
     thumbnail = page["thumbnail"]["source"] if "thumbnail" in page else ""
 
-    return f"# {title}\n\nurl: {url}\nthumbnail: {thumbnail}\n\n---\n{content}"
+    return f"# {title}\n\nurl: {url}\n\nthumbnail: {thumbnail}\n\n---\n{content}"
 
 
 @agents.function_tool
@@ -87,7 +90,7 @@ def web_search(q: str) -> str:
         str: The search results from the DuckDuckGo API.
     """
 
-    res = ddgs.DDGS().text(q, max_results=5)
+    res = ddgs.DDGS().text(q, max_results=10)
 
     return "\n\n---\n".join(
         [f"## [{item['title']}]({item['href']})\n\n{item['body']}" for item in res]
@@ -106,8 +109,8 @@ def web_page(url: str) -> str:
         str: The content of the web page in markdown format.
     """
 
-    response = httpx.get(url)
-    return markdownify.markdownify(response.text)
+    content = trafilatura.fetch_url(url)
+    return trafilatura.extract(content)
 
 
 def new(model: str, prompt: str, temp: float = 0.0) -> agents.Agent:
@@ -123,9 +126,8 @@ def new(model: str, prompt: str, temp: float = 0.0) -> agents.Agent:
         agents.Agent: The created agent.
     """
 
-    m = model
     c = openai.AsyncOpenAI(base_url=os.environ["OPENAI_API_BASE"])
-    m = agents.OpenAIChatCompletionsModel(openai_client=c, model=m)
+    m = agents.OpenAIChatCompletionsModel(openai_client=c, model=model)
 
     return agents.Agent(
         model=m,

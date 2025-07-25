@@ -148,9 +148,7 @@ def cmd(tags: list[str]) -> str | None:
 
 async def fetch(agent, path: str) -> str:
     filename = pathlib.Path(path).stem
-    input = (
-        f"Search for information and compile a note for '{filename.replace('-', ' ')}'"
-    )
+    input = f"Search for information related to '{filename.replace('-', ' ')}' and compile a note for it."
     log.debug(input)
     r = await agents.Runner().run(agent, input)
     return r.final_output
