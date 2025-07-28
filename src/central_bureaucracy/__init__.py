@@ -11,6 +11,8 @@ import logging
 import arxiv
 import re
 import agents
+import argparse
+import asyncio
 
 # setup logging
 logging.basicConfig(
@@ -200,3 +202,14 @@ def init() -> callable:
 def main() -> None:
     cb = init()
     runio(cb, PATH)
+
+
+def main_fetch():
+    parser = argparse.ArgumentParser(description="Fetch info on a file.")
+    parser.add_argument("filepath", type=str, help="Path to the file")
+    args = parser.parse_args()
+
+    filename = args.filepath
+    hh = init_hyperhound()
+    output = asyncio.run(fetch(hh, filename))
+    print(output)

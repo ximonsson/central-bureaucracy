@@ -31,6 +31,7 @@ dependencies = [
 
 [project.scripts]
 central-bureaucracy = "central_bureaucracy:main"
+fetch = "central_bureaucracy:main_fetch"
 
 [build-system]
 requires = ["hatchling"]
