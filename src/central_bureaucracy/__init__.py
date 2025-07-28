@@ -27,7 +27,6 @@ mlflow.openai.autolog()
 mlflow.langchain.autolog()
 
 dotenv.load_dotenv()
-# home = pathlib.Path.home()
 
 DB = os.environ.get("CB_DB", "data.duckdb")
 PATH = os.environ.get("CB_PATH", "/tmp/cb")
@@ -71,7 +70,7 @@ def init_hyperhound():
         with open(HYPER_HOUND_SYSPROMPT) as f:
             prompt = f.read()
 
-    return hyperhound.create_agent(HYPER_HOUND_MODEL, prompt, temp=0.3)
+    return hyperhound.create_agent(HYPER_HOUND_MODEL, prompt, temp=0.1)
 
 
 def init_inkinspector():
@@ -155,8 +154,29 @@ async def fetch(agent, path: str) -> str:
 
     filename = pathlib.Path(path).stem
     input = f"Search for information related to '{filename.replace('-', ' ')}' and compile a note for it."
-    log.debug(input)
     r = await agents.Runner().run(agent, input)
+
+    # TODO
+    # update the file with content
+
+    return r.final_output
+
+
+async def code(agent, path: str) -> str:
+    r = await agents.Runner().run(agent, path)
+
+    # TODO
+    # Create new file with code snippet
+
+    return r.final_output
+
+
+async def ocr(agent, path: str) -> str:
+    r = await agents.Runner().run(agent, path)
+
+    # TODO
+    # create new file with output
+
     return r.final_output
 
 
@@ -186,12 +206,10 @@ def init() -> callable:
                 return await fetch(hh, path)
 
             case "code":
-                r = await agents.Runner().run(cc, path)
-                return r.final_output
+                return await code(cc, path)
 
             case "ocr":
-                r = await agents.Runner().run(ii, path)
-                return r.final_output
+                return await ocr(ii, path)
 
             case _:
                 raise ValueError(f"Unrecognized command '{c}'!")
