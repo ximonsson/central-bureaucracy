@@ -1,4 +1,5 @@
 import agents
+from agents.extensions.models.litellm_model import LitellmModel
 import openai
 import os
 import re
@@ -25,6 +26,7 @@ def wiki_search(q: str) -> str:
     """
 
     url = "https://en.wikipedia.org/w/api.php"
+
     params = {
         "action": "query",
         "format": "json",
@@ -94,9 +96,7 @@ def web_search(q: str) -> str:
         str: The search results from the DuckDuckGo API.
     """
 
-    log.debug(f"Web search {q}")
-
-    res = ddgs.DDGS().text(q, max_results=10, backends="wikipedia,duckduckgo,google")
+    res = ddgs.DDGS().text(q, max_results=10, backends="duckduckgo,google")
 
     return "\n\n---\n".join(
         [f"## [{item['title']}]({item['href']})\n\n{item['body']}" for item in res]
@@ -134,6 +134,7 @@ def new(model: str, prompt: str, temp: float = 0.0) -> agents.Agent:
 
     c = openai.AsyncOpenAI(base_url=os.environ["OPENAI_API_BASE"])
     m = agents.OpenAIChatCompletionsModel(openai_client=c, model=model)
+    # m = LitellmModel(model=model)
 
     return agents.Agent(
         model=m,
