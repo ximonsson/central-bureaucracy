@@ -21,7 +21,7 @@ def agent(model: str, instr: str, temp: float = 0.0):
 
     return agents.Agent(
         model=m,
-        name="Ink Inspector 7000",
+        name="Code Clerk",
         instructions=instr,
         model_settings=agents.ModelSettings(temperature=temp),
         tools=[],
