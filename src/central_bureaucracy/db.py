@@ -1,6 +1,11 @@
 import duckdb
 import datetime
 from .io import frontmatter
+import io
+import logging
+
+log = logging.getLogger("central-bureaucracy-db")
+log.setLevel(logging.DEBUG)
 
 
 def connect(db: str) -> duckdb.DuckDBPyConnection:
@@ -18,14 +23,14 @@ def connect(db: str) -> duckdb.DuckDBPyConnection:
 
     try:
         con.remove_function("frontmatter")
-    except duckdb.InvalidInputException:
-        pass
+    except duckdb.InvalidInputException as e:
+        log.debug(e)
 
     # create UDF to extract front matter
     #   here we only want tags and date it was created.
 
     def front(fp: str) -> dict | None:
-        fm = frontmatter(fp)
+        fm = frontmatter(f=io.StringIO(fp))
 
         # some files will not have
 
@@ -61,3 +66,18 @@ def connect(db: str) -> duckdb.DuckDBPyConnection:
     )
 
     return con
+
+
+def index(db: duckdb.DuckDBPyConnection, dir: str):
+    """Index the notes in the specified directory.
+
+    Args:
+        db (duckdb.DuckDBPyConnection): The DuckDB database connection.
+        dir (str): The directory containing the markdown files to index.
+    """
+
+    db.sql(
+        f"""CREATE OR REPLACE VIEW notes AS
+        SELECT *, frontmatter(content) AS frontmatter, links(content) AS links FROM read_text('{dir}/**/*.md')
+        """,
+    )
