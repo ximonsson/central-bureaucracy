@@ -79,5 +79,24 @@ def index(db: duckdb.DuckDBPyConnection, dir: str):
     db.sql(
         f"""CREATE OR REPLACE VIEW notes AS
         SELECT *, frontmatter(content) AS frontmatter, links(content) AS links FROM read_text('{dir}/**/*.md')
-        """,
+        """
+    )
+
+
+def fetch(db: duckdb.DuckDBPyConnection, start: str, end: str) -> list[str]:
+    # TODO
+    # fix this stolen code
+    db.sql(
+        """WITH RECURSIVE tag_hierarchy(id, source, path) AS (
+            SELECT id, name, [name] AS path
+            FROM tag
+            WHERE subclassof IS NULL
+        UNION ALL
+            SELECT tag.id, tag.name, list_prepend(tag.name, tag_hierarchy.path)
+            FROM tag, tag_hierarchy
+            WHERE tag.subclassof = tag_hierarchy.id
+        )
+        SELECT path
+        FROM tag_hierarchy
+        WHERE source = 'Oasis';"""
     )
