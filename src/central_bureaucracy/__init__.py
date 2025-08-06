@@ -1,7 +1,7 @@
 import dotenv
 import os
 import pathlib
-from .db import connect  # noqa
+from .db import connect, index  # noqa
 from .io import run as runio, tags
 import mlflow
 import hyperhound
@@ -24,7 +24,7 @@ log.setLevel(logging.DEBUG)
 # tracing
 agents.set_tracing_disabled(True)
 mlflow.openai.autolog()
-mlflow.langchain.autolog()
+# mlflow.langchain.autolog()
 
 dotenv.load_dotenv()
 
