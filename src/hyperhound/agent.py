@@ -134,7 +134,6 @@ def new(model: str, prompt: str, temp: float = 0.0) -> agents.Agent:
 
     c = openai.AsyncOpenAI(base_url=os.environ["OPENAI_API_BASE"])
     m = agents.OpenAIChatCompletionsModel(openai_client=c, model=model)
-    # m = LitellmModel(model=model)
 
     return agents.Agent(
         model=m,

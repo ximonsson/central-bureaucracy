@@ -23,8 +23,7 @@ log.setLevel(logging.DEBUG)
 
 # tracing
 agents.set_tracing_disabled(True)
-mlflow.openai.autolog()
-# mlflow.langchain.autolog()
+# mlflow.openai.autolog()
 
 dotenv.load_dotenv()
 
@@ -147,6 +146,7 @@ def cmd(tags: list[str]) -> str | None:
     return None
 
 
+@mlflow.trace
 async def fetch(agent, path: str) -> str:
     """
     Fetch information related to a file and compile a note for it.
@@ -162,6 +162,7 @@ async def fetch(agent, path: str) -> str:
     return r.final_output
 
 
+@mlflow.trace
 async def code(agent, path: str) -> str:
     r = await agents.Runner().run(agent, path)
 
@@ -171,6 +172,7 @@ async def code(agent, path: str) -> str:
     return r.final_output
 
 
+@mlflow.trace
 async def ocr(agent, path: str) -> str:
     r = await agents.Runner().run(agent, path)
 
