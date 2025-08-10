@@ -58,13 +58,6 @@ def connect(db: str) -> duckdb.DuckDBPyConnection:
         null_handling="special",
     )
 
-    # create macro for extracting backlinks
-
-    con.sql(
-        """CREATE OR REPLACE MACRO links(x) AS
-        regexp_extract_all(x, '\[\[([\w-_/\.]+)(\|.+)?\]\]', 1)"""
-    )
-
     return con
 
 
@@ -75,6 +68,13 @@ def index(db: duckdb.DuckDBPyConnection, dir: str):
         db (duckdb.DuckDBPyConnection): The DuckDB database connection.
         dir (str): The directory containing the markdown files to index.
     """
+
+    # create macro for extracting backlinks
+
+    db.sql(
+        """CREATE OR REPLACE MACRO links(x) AS
+        regexp_extract_all(x, '\[\[([\w-_/\.]+)(\|.+)?\]\]', 1)"""
+    )
 
     db.sql(
         f"""CREATE OR REPLACE TABLE note AS
@@ -90,22 +90,68 @@ def index(db: duckdb.DuckDBPyConnection, dir: str):
         """
     )
 
+    db.sql("""
+        CREATE OR REPLACE VIEW link AS
+        SELECT name AS source, unnest(links) AS target FROM note
+    """)
+
 
 def fetch(db: duckdb.DuckDBPyConnection, start: str, end: str) -> list[str]:
-    # TODO
-    # fix this stolen code
-    db.sql(
-        """
-        WITH RECURSIVE linked(filename, source, path) AS (
-            SELECT id, name, [name] AS path
-                FROM tag
-                WHERE subclassof IS NULL
+    """Fetch the BFS traversal from start to end in the database.
+
+    Args:
+        db (duckdb.DuckDBPyConnection): The database connection.
+        start (str): The starting node for the traversal.
+        end (str): The ending node for the traversal.
+
+    Returns:
+        list[str]: The BFS traversal from start to end.
+    """
+
+    # TODO fix return type
+    # think about what information is needed for the LLM later.
+
+    # TODO only include notes that are tagged #note
+
+    return db.sql(
+        f"""
+        WITH RECURSIVE bfs_traversal AS (
+            -- Start with the root node;
+            SELECT
+                source,
+                target,
+                0 AS level,
+                ARRAY[source, target] AS path
+            FROM
+                link
+            WHERE
+                source = '{start}'
+
             UNION ALL
-                SELECT tag.id, tag.name, list_prepend(tag.name, tag_hierarchy.path)
-                FROM tag, tag_hierarchy
-                WHERE tag.subclassof = tag_hierarchy.id
+
+            -- Recursive part to join the paths
+            SELECT
+                e.source,
+                e.target,
+                b.level + 1,
+                b.path || e.target
+            FROM
+                link e
+            JOIN
+                bfs_traversal b ON e.source = b.target
+            WHERE
+                NOT e.target = ANY(b.path) -- Check to avoid cycles
         )
-        SELECT path
-        FROM note
-        WHERE source = 'Oasis';"""
-    )
+
+        SELECT
+            source,
+            target,
+            level
+        FROM
+            bfs_traversal
+        ORDER BY
+            level,
+            source,
+            target;
+        """
+    ).arrow()
