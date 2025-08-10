@@ -24,8 +24,7 @@ def ocr(path: str, model_id: str = "mistral-ocr-latest") -> dict:
     """
 
     img = encode(path)
-    # client = Mistral(api_key=os.environ["MISTRAL_API_KEY"])
-    client = Mistral(server_url="http://localhost:4000/mistral/v1")
+    client = Mistral(server_url="http://localhost:4000/mistral/")
 
     res = client.ocr.process(
         model=model_id,
