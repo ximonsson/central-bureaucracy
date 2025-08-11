@@ -19,6 +19,7 @@ def connect(db: str) -> duckdb.DuckDBPyConnection:
         duckdb.DuckDBPyConnection: The connection object to the DuckDB database.
     """
 
+    log.info(f"Connect to database [{db}]")
     con = duckdb.connect(db)
 
     try:
@@ -68,6 +69,8 @@ def index(db: duckdb.DuckDBPyConnection, dir: str):
         db (duckdb.DuckDBPyConnection): The DuckDB database connection.
         dir (str): The directory containing the markdown files to index.
     """
+
+    log.info(f"Re-index databaase @ [{dir}}")
 
     # create macro for extracting backlinks
 
