@@ -70,7 +70,7 @@ def index(db: duckdb.DuckDBPyConnection, dir: str):
         dir (str): The directory containing the markdown files to index.
     """
 
-    log.info(f"Re-index databaase @ [{dir}}")
+    log.info(f"Re-index databaase @ [{dir}]")
 
     # create macro for extracting backlinks
 
@@ -147,14 +147,10 @@ def fetch(db: duckdb.DuckDBPyConnection, start: str, end: str) -> list[str]:
         )
 
         SELECT
-            source,
-            target,
-            level
+            source, target, level
         FROM
             bfs_traversal
         ORDER BY
-            level,
-            source,
-            target;
+            level, source, target;
         """
     ).arrow()
