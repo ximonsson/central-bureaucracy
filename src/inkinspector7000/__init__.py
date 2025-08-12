@@ -6,7 +6,16 @@ import openai
 
 
 def encode(path: str) -> str:
-    """Perform base64 encoding on image."""
+    """
+    Perform base64 encoding on image.
+
+    Args:
+        path (str): The path to the image file.
+
+    Returns:
+        str: The base64 encoded image.
+    """
+
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
